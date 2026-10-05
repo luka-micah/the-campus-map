@@ -195,7 +195,60 @@ class MapView extends StatelessWidget {
               return const SizedBox.shrink();
             }
             final query = controller.searchQuery.value.trim();
-            if (query.isEmpty) return const SizedBox.shrink();
+            if (query.isEmpty) {
+              // Browse mode: list every registered location so users see
+              // what's available instead of guessing what to type.
+              final all = controller.locations;
+              return Container(
+                margin: const EdgeInsets.only(bottom: 8),
+                constraints: const BoxConstraints(maxHeight: 240),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(12),
+                  boxShadow: const [
+                    BoxShadow(blurRadius: 8, color: Colors.black26),
+                  ],
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+                      child: Text(
+                        'All locations (${all.length})',
+                        style: const TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.grey,
+                        ),
+                      ),
+                    ),
+                    Flexible(
+                      child: all.isEmpty
+                          ? const ListTile(
+                              leading: Icon(Icons.info_outline),
+                              title: Text('No locations registered yet'),
+                            )
+                          : ListView.builder(
+                              shrinkWrap: true,
+                              itemCount: all.length,
+                              itemBuilder: (context, index) {
+                                final loc = all[index];
+                                return ListTile(
+                                  leading: const Icon(Icons.place),
+                                  title: Text(loc.name),
+                                  subtitle: Text(loc.department),
+                                  onTap: () =>
+                                      controller.onMarkerTapped(loc.id),
+                                );
+                              },
+                            ),
+                    ),
+                  ],
+                ),
+              );
+            }
             final results = controller.searchResults;
             return Container(
               margin: const EdgeInsets.only(bottom: 8),
@@ -242,7 +295,7 @@ class MapView extends StatelessWidget {
                       controller: _searchCtrl,
                       onChanged: controller.search,
                       decoration: InputDecoration(
-                        hintText: 'Enter location...',
+                        hintText: 'Search or browse locations...',
                         prefixIcon: const Icon(Icons.search),
                         suffixIcon:
                             controller.searchQuery.value.isEmpty
