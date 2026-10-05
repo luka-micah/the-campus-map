@@ -12,6 +12,25 @@
 .swiftpm/
 migrate_working_dir/
 
+# Secrets — never commit API keys, keystores, or env files.
+# (Supabase keys are passed via --dart-define; Google Maps key lives in
+# AndroidManifest.xml — use a gradle manifestPlaceholder + local.properties
+# for release builds instead of hardcoding.)
+.env
+*.env
+!.env.example
+android/local.properties
+android/key.properties
+*.keystore
+*.jks
+google-services.json
+GoogleService-Info.plist
+
+# Supabase CLI working files (migrations/ and seed.sql stay tracked)
+supabase/.branches/
+supabase/.temp/
+supabase/.backup/
+
 # IntelliJ related
 *.iml
 *.ipr
@@ -27,10 +46,15 @@ migrate_working_dir/
 **/doc/api/
 **/ios/Flutter/.last_build_id
 .dart_tool/
+.flutter-plugins
 .flutter-plugins-dependencies
 .pub-cache/
 .pub/
 /build/
+**/build/
+*.apk
+*.aab
+*.ipa
 /coverage/
 
 # Symbolication related
