@@ -32,8 +32,9 @@ abstract class CampusRepository {
   /// Deletes the location with [id] and its associated edges atomically.
   Future<void> deleteLocation(String id);
 
-  /// Returns locations whose `name` field contains [query] as a
-  /// case-insensitive substring.
+  /// Returns locations matching [query] (case-insensitive partial match
+  /// against name and department; voice-command wrappers like
+  /// "take me to ..." are ignored). Blank queries return [].
   Future<List<LocationModel>> searchLocations(String query);
 
   /// A stream that emits a fresh list of [LocationModel] records whenever

@@ -5,6 +5,7 @@ import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:geolocator/geolocator.dart';
 
 import '../../data/campus_repository.dart';
+import '../../core/utils/location_search.dart';
 import 'location_service.dart';
 import '../../core/models/models.dart';
 import '../../routing/routing_service.dart';
@@ -68,18 +69,17 @@ class MapController extends GetxController {
     }
   }
 
-  /// Filters the loaded locations by name (case-insensitive partial match).
+  /// Filters the loaded locations by name or department (case-insensitive
+  /// partial match, shared with voice search). Voice-style phrasing
+  /// ("take me to the library") is stripped, so pasted transcripts work too.
   /// An empty query clears the results and hides the result list.
   void search(String query) {
     searchQuery.value = query;
-    final trimmed = query.trim().toLowerCase();
-    if (trimmed.isEmpty) {
+    if (query.trim().isEmpty) {
       searchResults.clear();
       return;
     }
-    searchResults.value = locations
-        .where((loc) => loc.name.toLowerCase().contains(trimmed))
-        .toList();
+    searchResults.value = filterLocations(locations, query);
   }
 
   /// Clears the search field and its results.

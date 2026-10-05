@@ -4,6 +4,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../core/models/models.dart';
+import '../core/utils/location_search.dart';
 import 'campus_repository.dart';
 import 'supabase_service.dart';
 
@@ -99,11 +100,12 @@ class SupabaseCampusRepository extends CampusRepository {
 
   @override
   Future<List<LocationModel>> searchLocations(String query) async {
-    final allLocations = await _supabaseService.getLocations();
-    final lowerQuery = query.toLowerCase();
-    return allLocations
-        .where((loc) => loc.name.toLowerCase().contains(lowerQuery))
-        .toList();
+    if (query.trim().isEmpty) return [];
+    // Use fetchLocations (not getLocations directly) so voice search shares
+    // the offline cache fallback instead of throwing while offline, and so
+    // both search paths match with the same normalization rules.
+    final allLocations = await fetchLocations();
+    return filterLocations(allLocations, query);
   }
 
   @override
