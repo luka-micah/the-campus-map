@@ -1,0 +1,13 @@
+{
+  // Gradle 8.14 cannot run on Java 25 (major version 69). Force JDK 21 for this project.
+  // JDK 21 matches `flutter doctor` / JAVA_HOME and AGP 8.9.1 requirements (JDK 17+).
+  "java.jdt.ls.java.home": "C:\\Users\\HomePC\\java\\jdk-21.0.12.1+1",
+  "java.import.gradle.java.home": "C:\\Users\\HomePC\\java\\jdk-21.0.12.1+1",
+  "java.configuration.runtimes": [
+    {
+      "name": "JavaSE-21",
+      "path": "C:\\Users\\HomePC\\java\\jdk-21.0.12.1+1",
+      "default": true
+    }
+  ]
+}

@@ -1,0 +1,23 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "campus_map + supabase",
+      "request": "launch",
+      "type": "dart",
+      // SupabaseService reads these via String.fromEnvironment.
+      // Replace with your values from Supabase Dashboard > Connect.
+      // Never commit real keys — pass them per-developer or via CI secrets.
+      "args": [
+        "--dart-define=SUPABASE_URL=https://xyzcompany.supabase.co",
+        "--dart-define=SUPABASE_PUBLISHABLE_KEY=YOUR_SUPABASE_PUBLISHABLE_KEY"
+      ]
+    },
+    {
+      "name": "campus_map (offline — placeholder keys)",
+      "request": "launch",
+      "type": "dart",
+      "args": []
+    }
+  ]
+}
