@@ -63,79 +63,68 @@ class MapView extends StatelessWidget {
         ],
       ),
       body: Obx(
-        () => Stack(
-          children: [
-            GoogleMap(
-              initialCameraPosition: CameraPosition(
-                target: _boustiCoordinate,
-                zoom: 14,
-              ),
-              mapType: controller.mapType.value,
-              onMapCreated: controller.onMapCreated,
-              onCameraMove: controller.onCameraMove,
-              markers: _buildMarkers(controller),
-              myLocationEnabled: controller.userPosition.value != null,
-              myLocationButtonEnabled: true,
-            ),
-            // Destination search field + live results.
-            _buildSearchBar(controller, voiceController),
-            // Status banners live in their own slot BELOW the search bar so
-            // the search field/results can never cover them (or vice versa).
-            // While a results dropdown is open the slot drops beneath it.
-            if (controller.hasFetchError.value ||
-                controller.isOfflineMode.value)
-              Positioned(
-                top: controller.searchQuery.value.trim().isEmpty ? 76 : 324,
-                left: 16,
-                right: 16,
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    if (controller.hasFetchError.value)
-                      _buildErrorBanner(controller),
-                    if (controller.isOfflineMode.value)
-                      _buildOfflineBanner(),
-                  ],
+        () {
+          // Bottom-up overlay stack: search row (16) → browse banner (84) →
+          // voice matches above that. Status banners own the top slot.
+          final browseVisible = controller.userPosition.value == null &&
+              Get.find<LocationService>().hasPermission.value == false;
+          return Stack(
+            children: [
+              GoogleMap(
+                initialCameraPosition: CameraPosition(
+                  target: _boustiCoordinate,
+                  zoom: 14,
                 ),
+                mapType: controller.mapType.value,
+                onMapCreated: controller.onMapCreated,
+                onCameraMove: controller.onCameraMove,
+                markers: _buildMarkers(controller),
+                myLocationEnabled: controller.userPosition.value != null,
+                myLocationButtonEnabled: true,
               ),
-            if (controller.userPosition.value == null &&
-                Get.find<LocationService>().hasPermission.value == false)
-              _buildBrowseOnlyBanner(controller),
-            // 8.7: on-screen voice-search matches for the user to select.
-            if (voiceController.searchMatches.isNotEmpty)
-              _buildMatchCard(voiceController),
-          ],
-        ),
-      ),
-      // 8.1: voice destination search control.
-      floatingActionButton: Obx(
-        () => FloatingActionButton(
-          onPressed: () {
-            if (voiceController.isListening.value) {
-              voiceController.stopListening();
-            } else {
-              voiceController.startListening();
-            }
-          },
-          tooltip: voiceController.isListening.value
-              ? 'Stop listening'
-              : 'Voice search',
-          child: Icon(
-            voiceController.isListening.value ? Icons.stop : Icons.mic,
-          ),
-        ),
+              // Status banners own the top slot now that search moved down.
+              if (controller.hasFetchError.value ||
+                  controller.isOfflineMode.value)
+                Positioned(
+                  top: 16,
+                  left: 16,
+                  right: 16,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      if (controller.hasFetchError.value)
+                        _buildErrorBanner(controller),
+                      if (controller.isOfflineMode.value)
+                        _buildOfflineBanner(),
+                    ],
+                  ),
+                ),
+              if (browseVisible) _buildBrowseOnlyBanner(controller),
+              // 8.7: on-screen voice-search matches for the user to select.
+              if (voiceController.searchMatches.isNotEmpty)
+                _buildMatchCard(
+                  voiceController,
+                  bottom: browseVisible ? 164 : 96,
+                ),
+              // Destination search field beside the mic, results open upward.
+              _buildBottomSearchBar(controller, voiceController),
+            ],
+          );
+        },
       ),
     );
   }
 
   /// On-screen list of voice-search matches (8.7). Tapping a match begins
-  /// navigation to it; the close button dismisses the list.
-  Widget _buildMatchCard(VoiceController voiceController) {
+  /// navigation to it; the close button dismisses the list. [bottom] keeps
+  /// the card clear of the browse banner and the bottom search row.
+  Widget _buildMatchCard(VoiceController voiceController,
+      {required double bottom}) {
     final matches = voiceController.searchMatches;
     return Align(
       alignment: Alignment.bottomCenter,
       child: Container(
-        margin: const EdgeInsets.only(left: 16, right: 16, bottom: 90),
+        margin: EdgeInsets.only(left: 16, right: 16, bottom: bottom),
         padding: const EdgeInsets.symmetric(vertical: 8),
         decoration: BoxDecoration(
           color: Colors.white,
@@ -186,44 +175,20 @@ class MapView extends StatelessWidget {
     );
   }
 
-  /// Destination search: text field with live matches; tapping a match
-  /// opens its details dialog (with Navigate), like tapping a marker.
-  Widget _buildSearchBar(
+  /// Destination search beside the mic: text field with live matches that
+  /// open upward; tapping a match opens its details dialog (with Navigate),
+  /// like tapping a marker.
+  Widget _buildBottomSearchBar(
     MapController controller,
     VoiceController voiceController,
   ) {
     return Positioned(
-      top: 12,
+      bottom: 16,
       left: 16,
       right: 16,
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Material(
-            elevation: 4,
-            borderRadius: BorderRadius.circular(12),
-            child: Obx(
-              () => TextField(
-                controller: _searchCtrl,
-                onChanged: controller.search,
-                decoration: InputDecoration(
-                  hintText: 'Search campus locations...',
-                  prefixIcon: const Icon(Icons.search),
-                  suffixIcon: controller.searchQuery.value.isEmpty
-                      ? null
-                      : IconButton(
-                          icon: const Icon(Icons.clear),
-                          onPressed: () {
-                            _searchCtrl.clear();
-                            controller.clearSearch();
-                          },
-                        ),
-                  border: InputBorder.none,
-                  contentPadding: const EdgeInsets.symmetric(vertical: 14),
-                ),
-              ),
-            ),
-          ),
           Obx(() {
             // Voice multi-match card takes precedence when both are visible.
             if (voiceController.searchMatches.isNotEmpty) {
@@ -233,8 +198,8 @@ class MapView extends StatelessWidget {
             if (query.isEmpty) return const SizedBox.shrink();
             final results = controller.searchResults;
             return Container(
-              margin: const EdgeInsets.only(top: 8),
-              constraints: const BoxConstraints(maxHeight: 240),
+              margin: const EdgeInsets.only(bottom: 8),
+              constraints: const BoxConstraints(maxHeight: 200),
               decoration: BoxDecoration(
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(12),
@@ -266,6 +231,61 @@ class MapView extends StatelessWidget {
                     ),
             );
           }),
+          Row(
+            children: [
+              Expanded(
+                child: Material(
+                  elevation: 4,
+                  borderRadius: BorderRadius.circular(28),
+                  child: Obx(
+                    () => TextField(
+                      controller: _searchCtrl,
+                      onChanged: controller.search,
+                      decoration: InputDecoration(
+                        hintText: 'Enter location...',
+                        prefixIcon: const Icon(Icons.search),
+                        suffixIcon:
+                            controller.searchQuery.value.isEmpty
+                                ? null
+                                : IconButton(
+                                    icon: const Icon(Icons.clear),
+                                    onPressed: () {
+                                      _searchCtrl.clear();
+                                      controller.clearSearch();
+                                    },
+                                  ),
+                        border: InputBorder.none,
+                        contentPadding:
+                            const EdgeInsets.symmetric(vertical: 14),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              // 8.1: voice destination search control.
+              Obx(
+                () => FloatingActionButton(
+                  heroTag: 'voice_search_fab',
+                  onPressed: () {
+                    if (voiceController.isListening.value) {
+                      voiceController.stopListening();
+                    } else {
+                      voiceController.startListening();
+                    }
+                  },
+                  tooltip: voiceController.isListening.value
+                      ? 'Stop listening'
+                      : 'Voice search',
+                  child: Icon(
+                    voiceController.isListening.value
+                        ? Icons.stop
+                        : Icons.mic,
+                  ),
+                ),
+              ),
+            ],
+          ),
         ],
       ),
     );
@@ -339,10 +359,11 @@ class MapView extends StatelessWidget {
   }
 
   Widget _buildBrowseOnlyBanner(MapController controller) {
+    // Lifted above the bottom search row (16 + ~56 field + margin).
     return Align(
       alignment: Alignment.bottomCenter,
       child: Container(
-        margin: const EdgeInsets.all(16),
+        margin: const EdgeInsets.only(left: 16, right: 16, bottom: 88),
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         decoration: BoxDecoration(
           color: Colors.blue.shade800,
