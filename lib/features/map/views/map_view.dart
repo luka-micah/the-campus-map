@@ -77,12 +77,27 @@ class MapView extends StatelessWidget {
               myLocationEnabled: controller.userPosition.value != null,
               myLocationButtonEnabled: true,
             ),
-            if (controller.hasFetchError.value)
-              _buildErrorBanner(controller),
             // Destination search field + live results.
             _buildSearchBar(controller, voiceController),
-            if (controller.isOfflineMode.value)
-              _buildOfflineBanner(),
+            // Status banners live in their own slot BELOW the search bar so
+            // the search field/results can never cover them (or vice versa).
+            // While a results dropdown is open the slot drops beneath it.
+            if (controller.hasFetchError.value ||
+                controller.isOfflineMode.value)
+              Positioned(
+                top: controller.searchQuery.value.trim().isEmpty ? 76 : 324,
+                left: 16,
+                right: 16,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (controller.hasFetchError.value)
+                      _buildErrorBanner(controller),
+                    if (controller.isOfflineMode.value)
+                      _buildOfflineBanner(),
+                  ],
+                ),
+              ),
             if (controller.userPosition.value == null &&
                 Get.find<LocationService>().hasPermission.value == false)
               _buildBrowseOnlyBanner(controller),
@@ -271,56 +286,54 @@ class MapView extends StatelessWidget {
   }
 
   Widget _buildErrorBanner(MapController controller) {
-    return Align(
-      alignment: Alignment.topCenter,
-      child: Container(
-        margin: const EdgeInsets.all(16),
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        decoration: BoxDecoration(
-          color: Colors.red.shade800,
-          borderRadius: BorderRadius.circular(8),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Icon(Icons.error, color: Colors.white, size: 20),
-            const SizedBox(width: 8),
-            const Text(
+    // Slot-friendly: the parent Positioned handles placement, so this is a
+    // plain full-width row (previously an Align that collided with the
+    // search bar and buried its own Retry button).
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: BoxDecoration(
+        color: Colors.red.shade800,
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.error, color: Colors.white, size: 20),
+          const SizedBox(width: 8),
+          const Expanded(
+            child: Text(
               'Failed to load map data',
               style: TextStyle(color: Colors.white),
             ),
-            const SizedBox(width: 16),
-            TextButton(
-              onPressed: () => controller.fetchLocations(),
-              child: const Text('Retry', style: TextStyle(color: Colors.white)),
-            ),
-          ],
-        ),
+          ),
+          TextButton(
+            onPressed: () => controller.fetchLocations(),
+            child: const Text('Retry', style: TextStyle(color: Colors.white)),
+          ),
+        ],
       ),
     );
   }
 
   Widget _buildOfflineBanner() {
-    return Align(
-      alignment: Alignment.topCenter,
-      child: Container(
-        margin: const EdgeInsets.only(top: 60),
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        decoration: BoxDecoration(
-          color: Colors.orange.shade800,
-          borderRadius: BorderRadius.circular(8),
-        ),
-        child: const Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(Icons.wifi_off, color: Colors.white, size: 20),
-            SizedBox(width: 8),
-            Text(
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: BoxDecoration(
+        color: Colors.orange.shade800,
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: const Row(
+        children: [
+          Icon(Icons.wifi_off, color: Colors.white, size: 20),
+          SizedBox(width: 8),
+          Expanded(
+            child: Text(
               'Data may be outdated — offline mode',
               style: TextStyle(color: Colors.white),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
